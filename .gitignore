@@ -1,0 +1,26 @@
+# JavaScript / Node
+node_modules/
+dist/
+coverage/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+
+# Environment Variables
+.env
+.env.local
+
+# Database (sqlite)
+# If you WANT to preserve your local demo data in the repo, comment these out.
+# Otherwise, it's better to let the app create a fresh DB.
+*.db
+*.sqlite
+
+# OS
+.DS_Store
+Thumbs.db
