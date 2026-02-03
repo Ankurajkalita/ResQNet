@@ -70,7 +70,7 @@ const MapView = () => {
                                         }`}>
                                         {report.severity} Severity
                                     </div>
-                                    <img src={`http://localhost:8000/${report.image_path}`} className="mt-2 rounded h-24 w-full object-cover border border-slate-200" />
+                                    <img src={`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/${report.image_path}`} className="mt-2 rounded h-24 w-full object-cover border border-slate-200" />
                                     <p className="text-xs mt-2 text-slate-500">
                                         <span className="font-semibold">Detected:</span> {report.damage_types.join(", ").replace(/_/g, " ")}
                                     </p>

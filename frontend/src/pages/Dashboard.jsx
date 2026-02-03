@@ -165,7 +165,7 @@ const ReportCard = ({ report }) => {
             <div className="bg-slate-900/50 backdrop-blur-sm rounded-xl shadow-lg overflow-hidden border border-slate-700/50 flex flex-col md:flex-row h-full group-hover:border-violet-500/50 transition-colors">
                 <div className="md:w-2/5 h-48 md:h-auto bg-slate-800 relative">
                     <img
-                        src={`http://localhost:8000/${report.image_path}`}
+                        src={`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/${report.image_path}`}
                         alt="Disaster Scene"
                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                     />

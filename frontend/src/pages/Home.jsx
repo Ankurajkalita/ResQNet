@@ -12,6 +12,25 @@ const Home = () => {
     const [loading, setLoading] = useState(false);
     const [coords, setCoords] = useState(null);
     const [locating, setLocating] = useState(false);
+    const [loadingMessage, setLoadingMessage] = useState("Initiating Analysis...");
+
+    React.useEffect(() => {
+        if (loading) {
+            const messages = [
+                "Connecting to Neural Engine...",
+                "Scanning Spectral Imagery...",
+                "Running Damaging Assessment...",
+                "Running Tactical Heuristics...",
+                "Finalizing Intelligence Report..."
+            ];
+            let i = 0;
+            const interval = setInterval(() => {
+                i = (i + 1) % messages.length;
+                setLoadingMessage(messages[i]);
+            }, 3000);
+            return () => clearInterval(interval);
+        }
+    }, [loading]);
 
     const handleFileChange = (e) => {
         const selected = e.target.files[0];
@@ -203,7 +222,7 @@ const Home = () => {
                                     {loading ? (
                                         <>
                                             <Loader2 className="animate-spin -ml-1 mr-3 h-5 w-5" />
-                                            Reading Telemetry...
+                                            {loadingMessage}
                                         </>
                                     ) : (
                                         <>
