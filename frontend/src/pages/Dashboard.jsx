@@ -204,7 +204,7 @@ const ReportCard = ({ report }) => {
 
                             <div>
                                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Damage Detected</p>
-                                {report.damage_detected ? (
+                                {report.damage_detected && Array.isArray(report.damage_types) ? (
                                     <div className="flex flex-wrap gap-2">
                                         {report.damage_types.map(dt => (
                                             <span key={dt} className="px-2 py-1 bg-slate-800 text-slate-300 text-xs rounded border border-slate-700 capitalize">
@@ -214,7 +214,7 @@ const ReportCard = ({ report }) => {
                                     </div>
                                 ) : (
                                     <span className="flex items-center text-xs text-emerald-400 font-medium mt-1">
-                                        <CheckCircle className="h-3.5 w-3.5 mr-1" /> No visible damage
+                                        <CheckCircle className="h-3.5 w-3.5 mr-1" /> No visible damage or analysis pending
                                     </span>
                                 )}
                             </div>
