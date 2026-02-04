@@ -174,8 +174,13 @@ const ReportCard = ({ report }) => {
 
                 <div className="p-4 md:w-3/5 flex flex-col justify-between">
                     <div>
-                        <div className="flex justify-between items-start mb-2">
-                            <span className={clsx("px-2.5 py-1 rounded-full text-xs font-bold border uppercase tracking-wider", badgeColor)}>
+                        <div className="flex justify-between items-start mb-4">
+                            <span className={clsx(
+                                "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border",
+                                isCritical ? "bg-red-500/10 text-red-500 border-red-500/20" :
+                                    report.severity === 'Medium' ? "bg-yellow-500/10 text-yellow-500 border-yellow-500/20" :
+                                        "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                            )}>
                                 {report.severity}
                             </span>
                             <span className="text-xs text-slate-400 font-mono">{new Date(report.timestamp).toLocaleDateString()}</span>

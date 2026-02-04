@@ -12,9 +12,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Configure Google AI
-GENAI_API_KEY = os.getenv("GOOGLE_API_KEY")
-if GENAI_API_KEY:
-    genai.configure(api_key=GENAI_API_KEY)
+# (Now handled inside analyze_image for better reliability)
 
 class AIEngine:
     def __init__(self):
@@ -31,17 +29,25 @@ class AIEngine:
         1. Uses Gemini Flash Vision for 90%+ accurate tactical reasoning (Primary)
         2. Falls back to YOLO/OpenCV if API fails (Secondary)
         """
+        # Ensure env vars are fresh
+        load_dotenv()
+        api_key = os.getenv("GOOGLE_API_KEY")
         
+        print(f"DEBUG: Starting analysis. API Key found: {'Yes' if api_key else 'No'}")
+
         # Try Gemini First (90%+ Accuracy Mode)
-        if GENAI_API_KEY:
+        if api_key:
             try:
+                genai.configure(api_key=api_key)
                 result = self._analyze_with_gemini(image_path)
                 if result:
+                    print("DEBUG: Gemini analysis success.")
                     return result
             except Exception as e:
-                print(f"Gemini Vision failed, falling back to heuristics: {e}")
+                print(f"DEBUG: Gemini Vision Exception: {e}")
 
-        # Fallback to Heuristic Mode (Existing logic)
+        # Fallback to Heuristic Mode
+        print("DEBUG: Falling back to heuristics.")
         return self._analyze_with_heuristics(image_path)
 
     def _analyze_with_gemini(self, image_path: str):
@@ -50,15 +56,21 @@ class AIEngine:
         img = PIL.Image.open(image_path)
         
         prompt = """
-        Analyze this disaster intelligence imagery for a hackathon project called ResQNet.
-        Provide a JSON response with the following keys:
-        - damage_detected (boolean)
-        - damage_types (list of 2-3 specific strings, e.g. "collapsed_bridge", "flooded_residential", "active_fire")
-        - severity (string: "Low", "Medium", "Critical")
-        - confidence (float between 0.90 and 0.98)
-        - summary (string: 10 word tactical summary)
+        ACT AS A DISASTER RESPONSE INTELLIGENCE OFFICER.
+        Analyze this imagery for the ResQNet crisis platform.
+        You MUST detect any structural damage, road cracks, earthquake impact, or flooding.
         
-        Only return the JSON object, nothing else.
+        If you see ANY damage (like cracked roads, rubble, collapsed walls), set damage_detected to true.
+        The user has reported 'earthquake damage with broken roads' - look closely for this.
+        
+        Provide a JSON response with these keys:
+        - damage_detected (boolean)
+        - damage_types (list, e.g. ["earthquake_damage", "broken_infrastructure", "cracked_road"])
+        - severity (string: "Low", "Medium", "Critical")
+        - confidence (float between 0.90 and 0.99)
+        - summary (string: Clear tactical summary including specific damage seen)
+        
+        Return ONLY valid JSON.
         """
         
         response = model.generate_content([prompt, img])
