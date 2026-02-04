@@ -18,7 +18,7 @@ const Home = () => {
         let interval;
         if (loading) {
             const messages = [
-                "Server waking up (Render Free Tier can take ~1mins)...",
+                "Server waking up (Render Free Tier can take about 1min)...",
                 "Scanning Spectral Imagery...",
                 "Running Damage Assessment...",
                 "Running Tactical Heuristics...",
@@ -27,7 +27,7 @@ const Home = () => {
             ];
 
             // Start with technical initialization and warning
-            setLoadingMessage("Server waking up (Render Free Tier can take ~1mins)...");
+            setLoadingMessage("Server waking up (Render Free Tier can take about 1min)...");
 
             let i = 1; // Start from second message in cycle
             interval = setInterval(() => {
