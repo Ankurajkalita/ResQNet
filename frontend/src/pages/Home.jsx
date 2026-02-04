@@ -15,20 +15,30 @@ const Home = () => {
     const [loadingMessage, setLoadingMessage] = useState("Initiating Analysis...");
 
     React.useEffect(() => {
+        let interval;
         if (loading) {
             const messages = [
                 "Connecting to Neural Engine...",
                 "Scanning Spectral Imagery...",
-                "Running Damaging Assessment...",
+                "Running Damage Assessment...",
                 "Running Tactical Heuristics...",
                 "Finalizing Intelligence Report..."
             ];
             let i = 0;
-            const interval = setInterval(() => {
+            interval = setInterval(() => {
                 i = (i + 1) % messages.length;
                 setLoadingMessage(messages[i]);
             }, 3000);
-            return () => clearInterval(interval);
+
+            // Special Cold Start Message if > 10 seconds
+            const coldStartTimeout = setTimeout(() => {
+                setLoadingMessage("Server is waking up (Render Free Tier)... This might take 1-2 minutes on first run.");
+            }, 10000);
+
+            return () => {
+                clearInterval(interval);
+                clearTimeout(coldStartTimeout);
+            };
         }
     }, [loading]);
 

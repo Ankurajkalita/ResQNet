@@ -34,6 +34,10 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 def read_root():
     return {"message": "ResQNet AI System Online"}
 
+@app.get("/health")
+def health_check():
+    return {"status": "healthy"}
+
 @app.post("/upload", response_model=schemas.ReportResponse)
 async def upload_image(
     file: UploadFile = File(...),
