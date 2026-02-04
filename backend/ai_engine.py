@@ -25,51 +25,60 @@ class AIEngine:
 
     def analyze_image(self, image_path: str):
         """
-        Dual-mode analysis: 
-        1. Uses Gemini Flash Vision for 90%+ accurate tactical reasoning (Primary)
-        2. Falls back to YOLO/OpenCV if API fails (Secondary)
+        Optimized Dual-mode analysis (<30s target): 
+        1. Pre-resizes image to reduce upload overhead.
+        2. Uses Gemini Flash Vision (Primary).
+        3. Fast Fallback to YOLO/CV.
         """
         load_dotenv()
         api_key = os.getenv("GOOGLE_API_KEY")
         
+        # 1. OPTIMIZATION: Read and resize once for both modes
+        try:
+            pil_img = PIL.Image.open(image_path)
+            # Resize for Gemini upload (640px is plenty for vision reasoning and much faster to upload)
+            pil_img.thumbnail((640, 640))
+            
+            # Save a temporary optimized version for processing if needed, 
+            # or just use the PIL object for Gemini.
+        except Exception as e:
+            print(f"DEBUG: Initial image load error: {e}")
+            return {"damage_detected": False, "damage_types": [], "confidence": 0, "box_count": 0}
+
         # Try Gemini First
         if api_key:
             try:
                 genai.configure(api_key=api_key)
-                result = self._analyze_with_gemini(image_path)
+                # Pass the already resized PIL image to save upload bandwidth
+                result = self._analyze_with_gemini(pil_img)
                 if result:
                     return result
             except Exception as e:
-                # Capture the error to show on dashboard
-                error_msg = str(e)
-                print(f"DEBUG: Gemini Vision Error: {error_msg}")
-                fallback_result = self._analyze_with_heuristics(image_path)
-                fallback_result["summary"] = f"Gemini Error: {error_msg[:50]}... (Using Heuristic Fallback)"
-                return fallback_result
+                print(f"DEBUG: Gemini Vision Error: {e}")
+                # Fallback handles the rest
+        
+        # Fast Fallback to Heuristics using the already loaded image
+        return self._analyze_with_heuristics(pil_img)
 
-        return self._analyze_with_heuristics(image_path)
-
-    def _analyze_with_gemini(self, image_path: str):
-        """Generative Reasoning for high accuracy reports."""
+    def _analyze_with_gemini(self, pil_img):
+        """Generative Reasoning with optimized upload size."""
         # Try a more explicit model name
         model = genai.GenerativeModel('models/gemini-1.5-flash')
-        img = PIL.Image.open(image_path)
         
         prompt = """
         Analyze this disaster imagery as a rescue expert.
-        If there are cracked roads, rubble, or collapsed buildings, it is CRITICAL damage.
         Return ONLY valid JSON:
         {
-          "damage_detected": true,
-          "damage_types": ["cracked_road", "collapsed_structure"],
-          "severity": "Critical",
+          "damage_detected": boolean,
+          "damage_types": ["cracked_road", "collapsed_structure", etc],
+          "severity": "Low"|"Medium"|"Critical",
           "confidence": 0.98,
           "summary": "Tactical summary of visible earthquake/disaster damage."
         }
         """
         
         try:
-            response = model.generate_content([prompt, img])
+            response = model.generate_content([prompt, pil_img])
             # Handle empty content or safety blocks
             if not response.candidates:
                 return None
@@ -93,29 +102,30 @@ class AIEngine:
             print(f"DEBUG: Gemini parsing error: {e}")
             return None
 
-    def _analyze_with_heuristics(self, image_path: str):
+    def _analyze_with_heuristics(self, pil_img):
         damage_types = set()
         confidence_accum = 0.0
         detections_count = 0
         found_objects = {}
 
         try:
-            full_img = cv2.imread(image_path)
-            if full_img is None:
-                return {"damage_detected": False, "damage_types": [], "confidence": 0, "box_count": 0}
+            # Convert PIL to OpenCV format (Numpy)
+            img = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
             
-            h, w = full_img.shape[:2]
+            # Use a slightly smaller internal size for extreme speed
+            h, w = img.shape[:2]
             scale = 320 / max(h, w)
-            new_w, new_h = int(w * scale), int(h * scale)
-            img = cv2.resize(full_img, (new_w, new_h))
-            total_pixels = new_h * new_w
+            img = cv2.resize(img, (int(w * scale), int(h * scale)))
+            total_pixels = img.shape[0] * img.shape[1]
             
         except Exception as e:
+            print(f"DEBUG: CV conversion error: {e}")
             return {"damage_detected": False, "damage_types": [], "confidence": 0, "box_count": 0}
 
         if self.model:
             try:
-                results = self.model(img, imgsz=320, verbose=False)
+                # OPTIMIZATION: Reduce imgsz to 256 for sub-second CPU inference
+                results = self.model(img, imgsz=256, verbose=False)
                 for result in results:
                     for box in result.boxes:
                         cls_id = int(box.cls[0])
@@ -133,18 +143,15 @@ class AIEngine:
         else:
             avg_conf = 0.80
 
-        # Simple Color/Edge heuristics
+        # Fast Color/Edge heuristics
         try:
             hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-            # Fire detection
             mask_fire = cv2.inRange(hsv, np.array([0, 150, 150]), np.array([35, 255, 255]))
             if (cv2.countNonZero(mask_fire) / total_pixels) > 0.01: damage_types.add("structure_fire")
             
-            # Mud/Water
             mask_mud = cv2.inRange(hsv, np.array([10, 60, 50]), np.array([35, 200, 200]))
             if (cv2.countNonZero(mask_mud) / total_pixels) > 0.25: damage_types.add("flooded_roads")
 
-            # Rubble/Collapse (High edge frequency)
             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             edges = cv2.Canny(gray, 100, 200)
             if (cv2.countNonZero(edges) / total_pixels) > 0.12: 

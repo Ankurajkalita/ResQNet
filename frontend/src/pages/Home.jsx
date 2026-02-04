@@ -25,15 +25,14 @@ const Home = () => {
                 "Finalizing Intelligence Report..."
             ];
 
-            // Start with Waking Up message
-            setLoadingMessage("Waking up AI server (Render Free Tier)... This may take 30-60s.");
+            // Start with technical initialization
+            setLoadingMessage("Calibrating Neural Vision...");
 
             let i = 0;
             interval = setInterval(() => {
-                // Change to technical messages after 8 seconds (enough time for user to read the first one)
                 setLoadingMessage(messages[i]);
                 i = (i + 1) % messages.length;
-            }, 5000);
+            }, 3000); // Faster rotation (3s)
 
             return () => {
                 if (interval) clearInterval(interval);
