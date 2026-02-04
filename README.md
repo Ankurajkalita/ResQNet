@@ -1,7 +1,6 @@
 # ResQNet: AI-Powered Disaster Intelligence Platform 🚨🌍
 
 > **Live Demo**: https://resqnet-nu.vercel.app/
-> **Backend API**: [Deploy backend to Render and paste link here]
 
 **ResQNet** is a real-time situational awareness tool designed to revolutionize disaster response. By leveraging AI (YOLOv8) and Geolocation, it instantly analyzes disaster imagery to classify severity, prioritize rescue zones, and coordinate resources.
 
