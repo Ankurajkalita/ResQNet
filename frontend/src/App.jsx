@@ -5,7 +5,6 @@ import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import MapView from './pages/MapView';
 import MissionDetails from './pages/MissionDetails';
-import EmergencyView from './pages/EmergencyView';
 
 function App() {
     return (
@@ -17,7 +16,6 @@ function App() {
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/map" element={<MapView />} />
                     <Route path="/mission/:id" element={<MissionDetails />} />
-                    <Route path="/emergency-view/:id" element={<EmergencyView />} />
                 </Routes>
             </div>
         </Router>

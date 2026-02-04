@@ -105,34 +105,3 @@ async def upload_image(
 @app.get("/reports", response_model=List[schemas.ReportResponse])
 def get_reports(db: Session = Depends(get_db)):
     return db.query(models.Report).order_by(models.Report.timestamp.desc()).all()
-
-@app.post("/sos", response_model=schemas.ReportResponse)
-async def trigger_sos(
-    latitude: float = Form(...),
-    longitude: float = Form(...),
-    location: str = Form(None),
-    sos_type: str = Form("standard"),
-    db: Session = Depends(get_db)
-):
-    # SOS reports don't have images initially
-    db_report = models.Report(
-        image_path="icons/sos_marker.png", # Placeholder or special icon
-        image_source="SOS_BUTTON",
-        location_name=location or "EMERGENCY SOS",
-        latitude=latitude,
-        longitude=longitude,
-        damage_detected=True,
-        damage_types=["LIFE_THREAT_EMERGENCY"],
-        severity="Critical",
-        confidence=1.0,
-        priority_score=100,
-        suggested_actions=["Immediate Rescue Deployment", "Dispatch Medical Team", "Open Communication Channel"],
-        suggested_supplies=["First Aid", "Trauma Kit", "Oxygen"],
-        required_resources=["Rescue Helicopter", "Ambulance"],
-        is_emergency=True,
-        sos_type=sos_type
-    )
-    db.add(db_report)
-    db.commit()
-    db.refresh(db_report)
-    return db_report

@@ -26,9 +26,8 @@ const Dashboard = () => {
 
     if (loading) return <div className="p-12 text-center text-slate-500 font-bold animate-pulse">Loading Mission Critical Intelligence...</div>;
 
-    const emergencies = reports.filter(r => r.is_emergency);
     const criticalzones = reports
-        .filter(r => r.priority_score > 60 && !r.is_emergency)
+        .filter(r => r.priority_score > 60)
         .sort((a, b) => b.priority_score - a.priority_score);
 
     const visibleZones = criticalzones.slice(startIndex, startIndex + 3);
@@ -136,37 +135,6 @@ const Dashboard = () => {
                     )}
                 </div>
             </div>
-            {/* INNOVATION: Emergency Alarms Section */}
-            {emergencies.length > 0 && (
-                <div className="mb-8 p-6 bg-red-950/10 border border-red-500/20 rounded-3xl">
-                    <h2 className="text-xl font-black text-red-500 mb-4 flex items-center uppercase tracking-tighter">
-                        <ShieldAlert className="h-6 w-6 mr-2 animate-bounce" />
-                        Active SOS Emergencies
-                    </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        {emergencies.map(sos => (
-                            <Link key={sos.id} to={`/emergency-view/${sos.id}`} className="block">
-                                <div className="bg-slate-900 border border-red-500/30 hover:border-red-500 rounded-2xl p-4 transition-all group backdrop-blur-sm relative overflow-hidden">
-                                    <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
-                                        <ShieldAlert className="h-10 w-10 text-red-500" />
-                                    </div>
-                                    <div className="relative z-10">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <div className="h-2 w-2 rounded-full bg-red-500 animate-ping"></div>
-                                            <span className="text-[10px] font-black text-red-400 uppercase tracking-widest">LIVE SIGNAL</span>
-                                        </div>
-                                        <h3 className="font-bold text-white leading-tight mb-1 truncate">{sos.location_name}</h3>
-                                        <p className="text-xs text-slate-400 font-mono mb-3">{sos.latitude.toFixed(4)}, {sos.longitude.toFixed(4)}</p>
-                                        <div className="bg-red-500 text-white text-[10px] font-black py-1.5 rounded-lg text-center uppercase tracking-tighter group-hover:bg-red-600 transition-colors">
-                                            Manage Rescue mission
-                                        </div>
-                                    </div>
-                                </div>
-                            </Link>
-                        ))}
-                    </div>
-                </div>
-            )}
 
             <h2 className="text-2xl font-bold text-white mb-6 flex items-center">
                 <Activity className="h-6 w-6 mr-2 text-violet-500" />

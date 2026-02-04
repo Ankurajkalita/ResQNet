@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { UploadCloud, AlertTriangle, CheckCircle, Loader2, ShieldAlert } from 'lucide-react';
-import { uploadImage, triggerSOS } from '../api';
+import { UploadCloud, AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
+import { uploadImage } from '../api';
 
 const Home = () => {
     const navigate = useNavigate();
@@ -71,45 +71,6 @@ const Home = () => {
         );
     };
 
-    const handleSOS = async () => {
-        if (!navigator.geolocation) {
-            alert("Geolocation is not supported. Cannot trigger SOS.");
-            return;
-        }
-
-        if (!window.confirm("CONFIRM EMERGENCY SOS? This will broadcast your live location to rescue teams.")) {
-            return;
-        }
-
-        setLoading(true);
-        setLoadingMessage("Broadcasting Emergency SOS...");
-
-        navigator.geolocation.getCurrentPosition(
-            async (position) => {
-                const { latitude, longitude } = position.coords;
-                const formData = new FormData();
-                formData.append('latitude', latitude.toString());
-                formData.append('longitude', longitude.toString());
-                formData.append('location', 'USER SOS TRIGGER');
-                formData.append('sos_type', 'life_threat');
-
-                try {
-                    const result = await triggerSOS(formData);
-                    navigate(`/emergency-view/${result.id}`);
-                } catch (error) {
-                    console.error("SOS failed", error);
-                    alert("SOS Critical Failure. Please call local emergency services.");
-                } finally {
-                    setLoading(false);
-                }
-            },
-            (error) => {
-                setLoading(false);
-                alert("Failed to get location for SOS. Please provide location access.");
-            }
-        );
-    };
-
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!file) return;
@@ -175,21 +136,6 @@ const Home = () => {
                     <p className="mt-6 text-xl text-slate-200 max-w-2xl mx-auto leading-relaxed font-medium drop-shadow-md shadow-black">
                         Instantly analyze satellite or user submitted imagery to detect critical infrastructure damage and prioritize rescue efforts.
                     </p>
-
-                    {/* INNOVATION: Instant SOS Button */}
-                    <div className="mt-10 flex flex-col items-center">
-                        <button
-                            onClick={handleSOS}
-                            className="relative group p-1 rounded-full animate-pulse hover:animate-none transition-all duration-500"
-                        >
-                            <div className="absolute inset-0 bg-red-600 rounded-full blur-xl group-hover:blur-2xl opacity-75 group-hover:opacity-100 transition-opacity"></div>
-                            <div className="relative bg-gradient-to-br from-red-500 to-red-700 h-24 w-24 md:h-32 md:w-32 rounded-full flex flex-col items-center justify-center border-4 border-white shadow-2xl transform group-active:scale-95 transition-transform">
-                                <ShieldAlert className="h-8 w-8 md:h-12 md:w-12 text-white mb-1" />
-                                <span className="text-white font-black text-xs md:text-sm tracking-tighter uppercase">SOS</span>
-                            </div>
-                        </button>
-                        <p className="mt-4 text-red-400 font-bold text-sm uppercase tracking-widest animate-bounce">Tap for Life-Threat Emergency</p>
-                    </div>
                 </div>
 
                 <div className="bg-slate-900/50 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/10 relative ring-1 ring-white/5">

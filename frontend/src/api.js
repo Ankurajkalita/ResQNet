@@ -13,15 +13,6 @@ export const uploadImage = async (formData) => {
     return response.data;
 };
 
-export const triggerSOS = async (formData) => {
-    const response = await api.post('/sos', formData, {
-        headers: {
-            'Content-Type': 'multipart/form-data',
-        },
-    });
-    return response.data;
-};
-
 export const getReports = async () => {
     const response = await api.get('/reports');
     return response.data;
