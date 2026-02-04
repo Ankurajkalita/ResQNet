@@ -23,13 +23,32 @@ class AIEngine:
         damage_types = set()
         confidence_accum = 0.0
         detections_count = 0
-        box_count = 0
         found_objects = {}
+
+        # 0. Load and Resize Image (CRITICAL for Render RAM)
+        try:
+            full_img = cv2.imread(image_path)
+            if full_img is None:
+                return {"damage_detected": False, "damage_types": [], "confidence": 0, "box_count": 0}
+            
+            # Resize for speed optimization (320px max dimension)
+            h, w = full_img.shape[:2]
+            scale = 320 / max(h, w)
+            new_w, new_h = int(w * scale), int(h * scale)
+            img = cv2.resize(full_img, (new_w, new_h))
+            total_pixels = new_h * new_w
+            
+            # Save a temporary small version for YOLO if needed, or just pass the array
+            # YOLOv8 can take numpy arrays
+        except Exception as e:
+            print(f"Image load error: {e}")
+            return {"damage_detected": False, "damage_types": [], "confidence": 0, "box_count": 0}
 
         # 1. Object Detection (YOLO)
         if self.model:
             try:
-                results = self.model(image_path, verbose=False)
+                # Use a smaller image size (320) for much faster inference on CPU
+                results = self.model(img, imgsz=320, verbose=False)
                 
                 for result in results:
                     for box in result.boxes:
@@ -41,18 +60,12 @@ class AIEngine:
                         confidence_accum += conf
                         detections_count += 1
 
-                # Heuristic 1: Analyze Objects
-                if found_objects.get('person', 0) > 0:
-                    # If people are detected in a disaster upload context, it's critical
-                    pass # We use this for severity later
-                
                 if found_objects.get('boat', 0) > 0:
                     damage_types.add("flooded_roads")
                 
                 if found_objects.get('car', 0) > 7 or found_objects.get('truck', 0) > 3:
                     damage_types.add("road_block")
 
-                # Average confidence
                 avg_conf = (confidence_accum / detections_count) if detections_count > 0 else 0.85
 
             except Exception as e:
@@ -63,55 +76,43 @@ class AIEngine:
 
         # 2. Computer Vision Analysis (OpenCV)
         try:
-            img = cv2.imread(image_path)
-            if img is not None:
-                # Convert to HSV for color analysis
-                hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-                h, w, _ = img.shape
-                total_pixels = h * w
+            # Already using 'img' (320px version) for faster CV analysis
+            hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 
-                # Heuristic 2: Fire Detection (Red/Orange/Yellow hues)
-                # Stricter thresholds: High Saturation (>150), High Value (>150) to avoid rust/bricks
-                lower_fire1 = np.array([0, 150, 150])
-                upper_fire1 = np.array([35, 255, 255])
-                lower_fire2 = np.array([170, 150, 150])
-                upper_fire2 = np.array([180, 255, 255])
-                
-                mask_fire1 = cv2.inRange(hsv, lower_fire1, upper_fire1)
-                mask_fire2 = cv2.inRange(hsv, lower_fire2, upper_fire2)
-                fire_pixels = cv2.countNonZero(mask_fire1) + cv2.countNonZero(mask_fire2)
-                
-                # Need > 1% of image to be *bright/vivid* fire
-                if (fire_pixels / total_pixels) > 0.01: 
-                    damage_types.add("structure_fire")
+            # Heuristic 2: Fire Detection
+            lower_fire1 = np.array([0, 150, 150])
+            upper_fire1 = np.array([35, 255, 255])
+            lower_fire2 = np.array([170, 150, 150])
+            upper_fire2 = np.array([180, 255, 255])
+            
+            mask_fire1 = cv2.inRange(hsv, lower_fire1, upper_fire1)
+            mask_fire2 = cv2.inRange(hsv, lower_fire2, upper_fire2)
+            fire_pixels = cv2.countNonZero(mask_fire1) + cv2.countNonZero(mask_fire2)
+            
+            if (fire_pixels / total_pixels) > 0.01: 
+                damage_types.add("structure_fire")
 
-                # Heuristic 3: Flood Detection (Brown/Muddy hues)
-                # Muddy water: Hue 10-35, Sat > 60 (avoid dry beige dust), Val 50-200
-                lower_mud = np.array([10, 60, 50])
-                upper_mud = np.array([35, 200, 200])
-                mud_mask = cv2.inRange(hsv, lower_mud, upper_mud)
-                mud_pixels = cv2.countNonZero(mud_mask)
-                
-                # Check for large bodies of water (Blue/Greenish)
-                lower_water = np.array([90, 50, 50])
-                upper_water = np.array([130, 255, 255])
-                water_mask = cv2.inRange(hsv, lower_water, upper_water)
-                water_pixels = cv2.countNonZero(water_mask)
+            # Heuristic 3: Flood Detection
+            lower_mud = np.array([10, 60, 50])
+            upper_mud = np.array([35, 200, 200])
+            mud_mask = cv2.inRange(hsv, lower_mud, upper_mud)
+            mud_pixels = cv2.countNonZero(mud_mask)
+            
+            lower_water = np.array([90, 50, 50])
+            upper_water = np.array([130, 255, 255])
+            water_mask = cv2.inRange(hsv, lower_water, upper_water)
+            water_pixels = cv2.countNonZero(water_mask)
 
-                # Detection logic: Significant mud OR significant water + some mud
-                if (mud_pixels / total_pixels) > 0.25 or ((water_pixels / total_pixels) > 0.10 and (mud_pixels / total_pixels) > 0.10): 
-                    damage_types.add("flooded_roads")
+            if (mud_pixels / total_pixels) > 0.25 or ((water_pixels / total_pixels) > 0.10 and (mud_pixels / total_pixels) > 0.10): 
+                damage_types.add("flooded_roads")
 
-                # Heuristic 4: Rubble/Collapse (High Edge Density)
-                gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-                edges = cv2.Canny(gray, 100, 200)
-                edge_pixels = cv2.countNonZero(edges)
-                
-                # Rubble has chaotic high frequency edges. 
-                # If high edge density (>15%), it's likely collapse/rubble. 
-                # REMOVED "not fire" dependency so multiple tags can exist.
-                if (edge_pixels / total_pixels) > 0.15:
-                    damage_types.add("infrastructure_collapse")
+            # Heuristic 4: Rubble/Collapse
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            edges = cv2.Canny(gray, 100, 200)
+            edge_pixels = cv2.countNonZero(edges)
+            
+            if (edge_pixels / total_pixels) > 0.15:
+                damage_types.add("infrastructure_collapse")
                     
         except Exception as e:
             print(f"CV Analysis error: {e}")
@@ -120,13 +121,6 @@ class AIEngine:
         final_damage_types = list(damage_types)
         is_damage = len(final_damage_types) > 0
         
-        # Fallback if nothing detected but user uploaded it (likely something subtle)
-        # Check if we found ANY objects but no 'damage'.
-        if not is_damage and detections_count > 0:
-            # If we see cars/people but no fire/flood, maybe it's just 'blocked_road' or mild damage?
-            # Let's be conservative. If nothing detected, say "No visible damage".
-            pass
-
         return {
             "damage_detected": is_damage,
             "damage_types": final_damage_types,
