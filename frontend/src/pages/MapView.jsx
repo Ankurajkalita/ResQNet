@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { Link } from 'react-router-dom';
 import 'leaflet/dist/leaflet.css';
 import { getReports } from '../api';
 
@@ -118,9 +118,9 @@ const MapView = () => {
                                     <p className="text-xs mt-2 text-slate-500">
                                         <span className="font-semibold">Detected:</span> {report.damage_types.join(", ").replace(/_/g, " ")}
                                     </p>
-                                    <a href={`/mission/${report.id}`} className="block mt-2 text-center text-xs bg-violet-600 text-white py-1 rounded hover:bg-violet-700 transition-colors">
+                                    <Link to={`/mission/${report.id}`} className="block mt-2 text-center text-xs bg-violet-600 text-white py-1 rounded hover:bg-violet-700 transition-colors">
                                         View Mission Details
-                                    </a>
+                                    </Link>
                                 </div>
                             </Popup>
                         </Marker>
