@@ -22,6 +22,14 @@ class AIEngine:
         except Exception as e:
             print(f"Error loading model: {e}")
             self.model = None
+        
+        # Configure Google AI once
+        api_key = os.getenv("GOOGLE_API_KEY")
+        if api_key:
+            genai.configure(api_key=api_key)
+            self.gemini_model = genai.GenerativeModel('models/gemini-1.5-flash')
+        else:
+            self.gemini_model = None
 
     def analyze_image(self, image_path: str):
         """
@@ -30,25 +38,23 @@ class AIEngine:
         2. Uses Gemini Flash Vision (Primary).
         3. Fast Fallback to YOLO/CV.
         """
-        load_dotenv()
-        api_key = os.getenv("GOOGLE_API_KEY")
-        
         # 1. OPTIMIZATION: Read and resize once for both modes
         try:
             pil_img = PIL.Image.open(image_path)
-            # Resize for Gemini upload (640px is plenty for vision reasoning and much faster to upload)
-            pil_img.thumbnail((640, 640))
+            # Ensure RGB for consistency
+            if pil_img.mode != 'RGB':
+                pil_img = pil_img.convert('RGB')
             
-            # Save a temporary optimized version for processing if needed, 
-            # or just use the PIL object for Gemini.
+            # Internal resize for processing (1024px is high-res for Gemini, 640px for logic)
+            # If the image is already small, thumbnail() won't scale it up.
+            pil_img.thumbnail((1024, 1024))
         except Exception as e:
             print(f"DEBUG: Initial image load error: {e}")
             return {"damage_detected": False, "damage_types": [], "confidence": 0, "box_count": 0}
 
         # Try Gemini First
-        if api_key:
+        if self.gemini_model:
             try:
-                genai.configure(api_key=api_key)
                 # Pass the already resized PIL image to save upload bandwidth
                 result = self._analyze_with_gemini(pil_img)
                 if result:
@@ -61,40 +67,51 @@ class AIEngine:
         return self._analyze_with_heuristics(pil_img)
 
     def _analyze_with_gemini(self, pil_img):
-        """Generative Reasoning with optimized upload size."""
-        # Try a more explicit model name
-        model = genai.GenerativeModel('models/gemini-1.5-flash')
-        
+        """Generative Reasoning with optimized prompt for accuracy."""
         prompt = """
-        Analyze this disaster imagery as a rescue expert.
+        You are an elite disaster response AI. Analyze this image and provide a tactical assessment.
+        
+        Identify specific damage such as:
+        - collapsed_structure: Buildings or bridges that have collapsed.
+        - cracked_road: Fissures or major cracks in pavement.
+        - flooded_roads: Water covering roadways.
+        - structure_fire: Active fire or smoke from buildings.
+        - road_block: Debris, landslides, or fallen trees blocking passage.
+        - infrastructure_collapse: Power lines down, cell towers tilted, etc.
+
         Return ONLY valid JSON:
         {
           "damage_detected": boolean,
-          "damage_types": ["cracked_road", "collapsed_structure", etc],
+          "damage_types": ["type1", "type2"], 
           "severity": "Low"|"Medium"|"Critical",
-          "confidence": 0.98,
-          "summary": "Tactical summary of visible earthquake/disaster damage."
+          "confidence": float (0.0 to 1.0),
+          "summary": "Short, professional tactical summary."
         }
         """
         
         try:
-            response = model.generate_content([prompt, pil_img])
-            # Handle empty content or safety blocks
+            response = self.gemini_model.generate_content([prompt, pil_img])
             if not response.candidates:
                 return None
                 
             text = response.text.strip()
-            # Remove Markdown JSON wraps
+            # Clean JSON response
             if "```json" in text:
                 text = text.split("```json")[1].split("```")[0].strip()
             elif "```" in text:
                 text = text.split("```")[1].split("```")[0].strip()
             
             data = json.loads(text)
+            
+            # Map severity to internal confidence boost if critical
+            conf = data.get("confidence", 0.95)
+            if data.get("severity") == "Critical":
+                conf = max(conf, 0.98)
+
             return {
                 "damage_detected": data.get("damage_detected", False),
                 "damage_types": data.get("damage_types", ["earthquake_impact"]),
-                "confidence": data.get("confidence", 0.95),
+                "confidence": round(conf, 2),
                 "box_count": len(data.get("damage_types", [])),
                 "summary": data.get("summary", "Gemini analysis results.")
             }

@@ -70,13 +70,58 @@ const Home = () => {
         );
     };
 
+    const resizeImage = (file, maxWidth = 1024, maxHeight = 1024) => {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > maxWidth) {
+                            height *= maxWidth / width;
+                            width = maxWidth;
+                        }
+                    } else {
+                        if (height > maxHeight) {
+                            width *= maxHeight / height;
+                            height = maxHeight;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    canvas.toBlob((blob) => {
+                        resolve(new File([blob], file.name, {
+                            type: 'image/jpeg',
+                            lastModified: Date.now(),
+                        }));
+                    }, 'image/jpeg', 0.85); // 85% quality is a good balance
+                };
+            };
+        });
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!file) return;
 
         setLoading(true);
+
+        // Resize image before upload to speed up transmission
+        setLoadingMessage("Optimizing Image for Transmission...");
+        const optimizedFile = await resizeImage(file);
+
         const formData = new FormData();
-        formData.append('file', file);
+        formData.append('file', optimizedFile);
         formData.append('source', source);
         formData.append('location', location || 'Unknown Location');
 
