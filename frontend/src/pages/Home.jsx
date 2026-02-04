@@ -18,21 +18,22 @@ const Home = () => {
         let interval;
         if (loading) {
             const messages = [
+                "Server waking up (Render Free Tier can take ~1mins)...",
                 "Scanning Spectral Imagery...",
                 "Running Damage Assessment...",
                 "Running Tactical Heuristics...",
-                "Optimizing For Low-Bandwidth Intelligence...",
+                "Optimizing For Low Bandwidth Intelligence...",
                 "Finalizing Intelligence Report..."
             ];
 
-            // Start with technical initialization
-            setLoadingMessage("Calibrating Neural Vision...");
+            // Start with technical initialization and warning
+            setLoadingMessage("Server waking up (Render Free Tier can take ~1mins)...");
 
-            let i = 0;
+            let i = 1; // Start from second message in cycle
             interval = setInterval(() => {
                 setLoadingMessage(messages[i]);
                 i = (i + 1) % messages.length;
-            }, 3000); // Faster rotation (3s)
+            }, 4000); // Slightly slower rotation for readability
 
             return () => {
                 if (interval) clearInterval(interval);
