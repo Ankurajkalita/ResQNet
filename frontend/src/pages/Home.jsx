@@ -18,26 +18,25 @@ const Home = () => {
         let interval;
         if (loading) {
             const messages = [
-                "Connecting to Neural Engine...",
                 "Scanning Spectral Imagery...",
                 "Running Damage Assessment...",
                 "Running Tactical Heuristics...",
+                "Optimizing For Low-Bandwidth Intelligence...",
                 "Finalizing Intelligence Report..."
             ];
+
+            // Start with Waking Up message
+            setLoadingMessage("Waking up AI server (Render Free Tier)... This may take 30-60s.");
+
             let i = 0;
             interval = setInterval(() => {
-                i = (i + 1) % messages.length;
+                // Change to technical messages after 8 seconds (enough time for user to read the first one)
                 setLoadingMessage(messages[i]);
-            }, 3000);
-
-            // Special Cold Start Message if > 10 seconds
-            const coldStartTimeout = setTimeout(() => {
-                setLoadingMessage("Server is waking up (Render Free Tier)... This might take 1-2 minutes on first run.");
-            }, 10000);
+                i = (i + 1) % messages.length;
+            }, 5000);
 
             return () => {
-                clearInterval(interval);
-                clearTimeout(coldStartTimeout);
+                if (interval) clearInterval(interval);
             };
         }
     }, [loading]);
