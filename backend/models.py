@@ -24,5 +24,6 @@ class Report(Base):
     
     is_emergency = Column(Boolean, default=False)
     sos_type = Column(String, nullable=True) # "life_threat", "medical", "standard"
+    summary = Column(String, nullable=True)
     
     timestamp = Column(DateTime, default=datetime.utcnow)

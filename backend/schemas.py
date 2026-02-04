@@ -25,6 +25,7 @@ class ReportResponse(ReportBase):
     required_resources: List[str] = []
     is_emergency: bool = False
     sos_type: Optional[str] = None
+    summary: Optional[str] = None
     timestamp: datetime
 
     class Config:

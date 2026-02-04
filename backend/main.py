@@ -88,7 +88,8 @@ async def upload_image(
             suggested_actions=suggestions["actions"],
             suggested_supplies=suggestions["supplies"],
             required_resources=suggestions["resources"],
-            is_emergency=False # Standard uploads are not auto-SOS unless flagged
+            is_emergency=False, # Standard uploads are not auto-SOS unless flagged
+            summary=ai_result.get("summary")
         )
         
         db.add(db_report)

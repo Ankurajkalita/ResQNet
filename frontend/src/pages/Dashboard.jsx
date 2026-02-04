@@ -186,7 +186,17 @@ const ReportCard = ({ report }) => {
                             {report.location_name || "Unknown Location"}
                         </h3>
 
-                        <div className="space-y-2 mt-2">
+                        <div className="space-y-4 mt-4">
+                            {/* AI Reasoning Summary */}
+                            {report.summary && (
+                                <div className="p-3 bg-violet-500/10 border border-violet-500/20 rounded-xl">
+                                    <p className="text-[10px] font-black text-violet-400 uppercase tracking-widest mb-1 flex items-center">
+                                        <Activity className="h-3 w-3 mr-1" /> AI Real-time Reasoning
+                                    </p>
+                                    <p className="text-sm text-slate-200 font-medium italic">"{report.summary}"</p>
+                                </div>
+                            )}
+
                             <div>
                                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Damage Detected</p>
                                 {report.damage_detected ? (
