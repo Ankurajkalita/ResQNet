@@ -22,4 +22,7 @@ class Report(Base):
     suggested_supplies = Column(JSON) # List of strings e.g. "Food 50kg"
     required_resources = Column(JSON) # List of strings
     
+    is_emergency = Column(Boolean, default=False)
+    sos_type = Column(String, nullable=True) # "life_threat", "medical", "standard"
+    
     timestamp = Column(DateTime, default=datetime.utcnow)

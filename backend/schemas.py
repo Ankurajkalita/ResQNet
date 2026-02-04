@@ -9,7 +9,8 @@ class ReportBase(BaseModel):
     longitude: Optional[float] = None
 
 class ReportCreate(ReportBase):
-    pass
+    is_emergency: Optional[bool] = False
+    sos_type: Optional[str] = None
 
 class ReportResponse(ReportBase):
     id: int
@@ -22,6 +23,8 @@ class ReportResponse(ReportBase):
     suggested_actions: List[str] = []
     suggested_supplies: List[str] = []
     required_resources: List[str] = []
+    is_emergency: bool = False
+    sos_type: Optional[str] = None
     timestamp: datetime
 
     class Config:
